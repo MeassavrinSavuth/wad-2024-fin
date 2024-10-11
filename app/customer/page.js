@@ -65,7 +65,7 @@ export default function CustomerPage() {
                         <div>
                             <p className="font-bold">{customer.name}</p>
                             <p>{customer.dob.split('T')[0]}</p>
-                            <p>Member #: {customer.memberNumber}</p>
+                            <p>Members #: {customer.memberNumber}</p>
                             <p>Interest: {customer.interest}</p>
                         </div>
                         <div className="flex space-x-2">
