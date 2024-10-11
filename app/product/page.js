@@ -1,115 +1,117 @@
+// app/home/page.js (or the relevant component for managing products)
 "use client";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { useEffect, useState } from "react";
 
 export default function Home() {
-  const APIBASE = process.env.NEXT_PUBLIC_API_URL;
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL; // Make sure this is set in .env.local
   const { register, handleSubmit, reset } = useForm();
   const [products, setProducts] = useState([]);
-  const [category, setCategory] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [editMode, setEditMode] = useState(false);
 
+  // Function to start editing a product
   const startEdit = (product) => async () => {
     setEditMode(true);
-    reset(product);
+    reset(product); // Reset the form with the product data
   };
 
+  // Fetch products from the API
   async function fetchProducts() {
-    const data = await fetch(`${APIBASE}/product`);
-    const p = await data.json();
-    const p2 = p.map((product) => {
-      product.id = product._id;
-      return product;
-    });
-    setProducts(p2);
-  }
-
-  async function fetchCategory() {
-    const data = await fetch(`${APIBASE}/category`);
-    const c = await data.json();
-    setCategory(c);
-  }
-
-  const createProductOrUpdate = async (data) => {
-    if (editMode) {
-      const response = await fetch(`${APIBASE}/product`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) {
-        alert(`Failed to update product: ${response.status}`);
-      }
-      alert("Product updated successfully");
-      reset({
-        code: "",
-        name: "",
-        description: "",
-        price: "",
-        category: "",
-      });
-      setEditMode(false);
-      fetchProducts();
-      return;
-    }
-
-    const response = await fetch(`${APIBASE}/product`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data),
-    });
-
     try {
-      if (!response.ok) {
-        throw new Error(`Response status: ${response.status}`);
+      const response = await fetch(`${API_BASE}/product`);
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      const p = await response.json();
+      const p2 = p.map((product) => {
+        product.id = product._id; // Use _id as id for consistency
+        return product;
+      });
+      setProducts(p2);
+    } catch (error) {
+      console.error('Failed to fetch products:', error);
+      alert('Failed to fetch products');
+    }
+  }
+
+  // Fetch categories from the API
+  async function fetchCategories() {
+    try {
+      const response = await fetch(`${API_BASE}/category`);
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      const c = await response.json();
+      setCategories(c);
+    } catch (error) {
+      console.error('Failed to fetch categories:', error);
+      alert('Failed to fetch categories');
+    }
+  }
+
+  // Create or update a product
+  const createProductOrUpdate = async (data) => {
+    try {
+      if (editMode) {
+        const response = await fetch(`${API_BASE}/product`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(data),
+        });
+
+        if (!response.ok) throw new Error(`Failed to update product: ${response.status}`);
+
+        alert("Product updated successfully");
+      } else {
+        const response = await fetch(`${API_BASE}/product`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(data),
+        });
+
+        if (!response.ok) throw new Error(`Failed to add product: ${response.status}`);
+
+        alert("Product added successfully");
       }
 
-      // const json = await response.json();
-      alert("Product added successfully");
-
-      reset({
-        code: "",
-        name: "",
-        description: "",
-        price: "",
-        category: "",
-      });
+      reset({ code: "", name: "", description: "", price: "", category: "" });
       fetchProducts();
     } catch (error) {
-      alert(`Failed to add product: ${error.message}`);
       console.error(error);
+      alert(error.message);
     }
   };
 
+  // Delete a product by ID
   const deleteById = (id) => async () => {
     if (!confirm("Are you sure?")) return;
 
-    const response = await fetch(`${APIBASE}/product/${id}`, {
-      method: "DELETE",
-    });
+    try {
+      const response = await fetch(`${API_BASE}/product/${id}`, {
+        method: "DELETE",
+      });
 
-    if (!response.ok) {
-      alert(`Failed to delete product: ${response.status}`);
+      if (!response.ok) throw new Error(`Failed to delete product: ${response.status}`);
+
+      alert("Product deleted successfully");
+      fetchProducts();
+    } catch (error) {
+      console.error(error);
+      alert(error.message);
     }
-    alert("Product deleted successfully");
-    fetchProducts();
   };
 
   useEffect(() => {
-    fetchCategory();
+    fetchCategories();
     fetchProducts();
   }, []);
 
   return (
     <>
       <div className="flex flex-row gap-4">
-        <div className="flex-1 w-64 ">
+        <div className="flex-1 w-64">
           <form onSubmit={handleSubmit(createProductOrUpdate)}>
             <div className="grid grid-cols-2 gap-4 m-4 w-1/2">
               <div>Code:</div>
@@ -141,7 +143,7 @@ export default function Home() {
               <div>Price:</div>
               <div>
                 <input
-                  name="name"
+                  name="price" // Make sure this name is unique
                   type="number"
                   {...register("price", { required: true })}
                   className="border border-black w-full"
@@ -154,7 +156,7 @@ export default function Home() {
                   {...register("category", { required: true })}
                   className="border border-black w-full"
                 >
-                  {category.map((c) => (
+                  {categories.map((c) => (
                     <option key={c._id} value={c._id}>
                       {c.name}
                     </option>
